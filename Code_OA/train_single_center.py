@@ -46,13 +46,12 @@ from val_2D import test_single_volume, test_single_volume_fast
 parser = argparse.ArgumentParser()
 parser.add_argument("--exp", type=str, default="BMC", help="experiment_name")
 parser.add_argument("--model", type=str, default="nnUNet", help="model_name")
-parser.add_argument("--max_iterations", type=int,
-                    default=12000, help="maximum epoch number to train")
+
 parser.add_argument("--batch_size", type=int, default=8,
                     help="batch_size per gpu")
 parser.add_argument("--deterministic", type=int, default=1,
                     help="whether use deterministic training")
-parser.add_argument("--base_lr", type=float, default=0.01,
+parser.add_argument("--base_lr", type=float, default=0.003,
                     help="segmentation network learning rate")
 parser.add_argument("--patch_size", type=list,
                     default=[128, 128], help="patch size of network input")
@@ -108,8 +107,8 @@ def update_ema_variables(model, ema_model, alpha, global_step):
 def train(args, snapshot_path):
     base_lr = args.base_lr
     num_classes = args.num_classes
-    batch_size = args.batch_size
-    max_iterations = args.max_iterations
+    
+    
 
     def create_model(ema=False):
         # Network definition
@@ -186,6 +185,7 @@ def train(args, snapshot_path):
     logging.info("{} iterations per epoch".format(len(trainloader)))
 
     max_epoch = 200
+    max_iterations =max_epoch * len(trainloader)
     #best_performance = 0.6
     
 
