@@ -36,12 +36,12 @@ class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, dropout_p):
         super(ConvBlock, self).__init__()
         self.conv_conv = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_channels),
+            nn.Conv3d(in_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm3d(out_channels),
             nn.LeakyReLU(),
-            nn.Dropout(dropout_p),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_channels),
+            nn.Dropout3d(dropout_p),
+            nn.Conv3d(out_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm3d(out_channels),
             nn.LeakyReLU()
         )
 
@@ -55,7 +55,7 @@ class DownBlock(nn.Module):
     def __init__(self, in_channels, out_channels, dropout_p):
         super(DownBlock, self).__init__()
         self.maxpool_conv = nn.Sequential(
-            nn.MaxPool2d(2),
+            nn.MaxPool3d(2),
             ConvBlock(in_channels, out_channels, dropout_p)
 
         )
@@ -72,11 +72,11 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.bilinear = bilinear
         if bilinear:
-            self.conv1x1 = nn.Conv2d(in_channels1, in_channels2, kernel_size=1)
+            self.conv1x1 = nn.Conv3d(in_channels1, in_channels2, kernel_size=1)
             self.up = nn.Upsample(
                 scale_factor=2, mode='bilinear', align_corners=True)
         else:
-            self.up = nn.ConvTranspose2d(
+            self.up = nn.ConvTranspose3d(
                 in_channels1, in_channels2, kernel_size=2, stride=2)
         self.conv = ConvBlock(in_channels2 * 2, out_channels, dropout_p)
 
@@ -137,7 +137,7 @@ class Decoder(nn.Module):
         self.up4 = UpBlock(
             self.ft_chns[1], self.ft_chns[0], self.ft_chns[0], dropout_p=0.0)
 
-        self.out_conv = nn.Conv2d(self.ft_chns[0], self.n_class,
+        self.out_conv = nn.Conv3d(self.ft_chns[0], self.n_class,
                                   kernel_size=3, padding=1)
 
     def forward(self, feature):
@@ -174,11 +174,11 @@ class Decoder_MH(nn.Module):
         self.up4 = UpBlock(
             self.ft_chns[1], self.ft_chns[0], self.ft_chns[0], dropout_p=0.0)
 
-        self.out_conv1 = nn.Conv2d(self.ft_chns[0], self.n_class,
+        self.out_conv1 = nn.Conv3d(self.ft_chns[0], self.n_class,
                                    kernel_size=3, padding=1)
-        self.out_conv2 = nn.Conv2d(self.ft_chns[0], self.n_class,
+        self.out_conv2 = nn.Conv3d(self.ft_chns[0], self.n_class,
                                    kernel_size=3, padding=1)
-        self.out_conv3 = nn.Conv2d(self.ft_chns[0], self.n_class,
+        self.out_conv3 = nn.Conv3d(self.ft_chns[0], self.n_class,
                                    kernel_size=3, padding=1)
 
     def forward(self, feature):
@@ -217,15 +217,15 @@ class Decoder_DS(nn.Module):
         self.up4 = UpBlock(
             self.ft_chns[1], self.ft_chns[0], self.ft_chns[0], dropout_p=0.0)
 
-        self.out_conv = nn.Conv2d(self.ft_chns[0], self.n_class,
+        self.out_conv = nn.Conv3d(self.ft_chns[0], self.n_class,
                                   kernel_size=3, padding=1)
-        self.out_conv_dp4 = nn.Conv2d(self.ft_chns[4], self.n_class,
+        self.out_conv_dp4 = nn.Conv3d(self.ft_chns[4], self.n_class,
                                       kernel_size=3, padding=1)
-        self.out_conv_dp3 = nn.Conv2d(self.ft_chns[3], self.n_class,
+        self.out_conv_dp3 = nn.Conv3d(self.ft_chns[3], self.n_class,
                                       kernel_size=3, padding=1)
-        self.out_conv_dp2 = nn.Conv2d(self.ft_chns[2], self.n_class,
+        self.out_conv_dp2 = nn.Conv3d(self.ft_chns[2], self.n_class,
                                       kernel_size=3, padding=1)
-        self.out_conv_dp1 = nn.Conv2d(self.ft_chns[1], self.n_class,
+        self.out_conv_dp1 = nn.Conv3d(self.ft_chns[1], self.n_class,
                                       kernel_size=3, padding=1)
 
     def forward(self, feature, shape):
@@ -270,15 +270,15 @@ class Decoder_URPC(nn.Module):
         self.up4 = UpBlock(
             self.ft_chns[1], self.ft_chns[0], self.ft_chns[0], dropout_p=0.0)
 
-        self.out_conv = nn.Conv2d(self.ft_chns[0], self.n_class,
+        self.out_conv = nn.Conv3d(self.ft_chns[0], self.n_class,
                                   kernel_size=3, padding=1)
-        self.out_conv_dp4 = nn.Conv2d(self.ft_chns[4], self.n_class,
+        self.out_conv_dp4 = nn.Conv3d(self.ft_chns[4], self.n_class,
                                       kernel_size=3, padding=1)
-        self.out_conv_dp3 = nn.Conv2d(self.ft_chns[3], self.n_class,
+        self.out_conv_dp3 = nn.Conv3d(self.ft_chns[3], self.n_class,
                                       kernel_size=3, padding=1)
-        self.out_conv_dp2 = nn.Conv2d(self.ft_chns[2], self.n_class,
+        self.out_conv_dp2 = nn.Conv3d(self.ft_chns[2], self.n_class,
                                       kernel_size=3, padding=1)
-        self.out_conv_dp1 = nn.Conv2d(self.ft_chns[1], self.n_class,
+        self.out_conv_dp1 = nn.Conv3d(self.ft_chns[1], self.n_class,
                                       kernel_size=3, padding=1)
         self.feature_noise = FeatureNoise()
 

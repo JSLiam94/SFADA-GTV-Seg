@@ -48,15 +48,15 @@ parser.add_argument("--exp", type=str, default="BMC", help="experiment_name")
 parser.add_argument("--model", type=str, default="nnUNet", help="model_name")
 parser.add_argument("--max_iterations", type=int,
                     default=12000, help="maximum epoch number to train")
-parser.add_argument("--batch_size", type=int, default=8,
+parser.add_argument("--batch_size", type=int, default=2,
                     help="batch_size per gpu")
 parser.add_argument("--deterministic", type=int, default=1,
                     help="whether use deterministic training")
-parser.add_argument("--base_lr", type=float, default=0.01,
+parser.add_argument("--base_lr", type=float, default=0.03,
                     help="segmentation network learning rate")
 parser.add_argument("--patch_size", type=list,
                     default=[128, 128], help="patch size of network input")
-parser.add_argument("--seed", type=int, default=2025, help="random seed")
+parser.add_argument("--seed", type=int, default=2023, help="random seed")
 parser.add_argument("--num_classes", type=int, default=4,
                     help="output channel of network")
 parser.add_argument("--load", default=False,
@@ -130,7 +130,8 @@ def train(args, snapshot_path):
     #     transform=RandomGenerator(args.patch_size)
     # )
     # db_val = BaseDataSets(base_dir=args.root_path, split="val")
-
+    source_root = 'D:/HDU/STORE/BRATS_dataloader/source'
+    target_root = 'D:/HDU/STORE/BRATS_dataloader/target'
     
     trainloader,valloader = get_data_loader(
         source_root=source_root,
@@ -177,7 +178,7 @@ def train(args, snapshot_path):
     logging.info("{} iterations per epoch".format(len(trainloader)))
 
     max_epoch = 200
-    #best_performance = 0.6
+    best_performance = 0.6
 
     iter_num = int(iter_num)
 
@@ -311,9 +312,16 @@ def train(args, snapshot_path):
                 #writer.add_scalar("info/model_val_mean_dice",
                                   #performance, iter_num)
                 if avg_dice > best_dice:
-                    best_dice = avg_dice
+                    best_performance = avg_dice
+                    save_mode_path = os.path.join(
+                        snapshot_path,
+                        "model_iter_{}_dice_{}.pth".format(
+                            iter_num, round(best_performance, 4)),
+                    )
                     save_best = os.path.join(
-                        snapshot_path, "best_model.pth")
+                        snapshot_path, "{}_best_model.pth".format(args.model))
+                    util.save_checkpoint(
+                        epoch_num, model, optimizer, loss, save_mode_path)
                     util.save_checkpoint(
                         epoch_num, model, optimizer, loss, save_best)
 
@@ -362,8 +370,7 @@ if __name__ == "__main__":
     # shutil.copytree(".", snapshot_path + "/code",
     #                 shutil.ignore_patterns([".git", "__pycache__"]))
 
-    source_root = '/root/autodl-tmp/BraTS2024'
-    target_root = '/root/autodl-tmp/BraTS-SSA'
+
     mode='source_to_source'
     img = 't2f'
 

@@ -152,7 +152,7 @@ class Decoder(nn.Module):
         x = self.up3(x, x1)
         x = self.up4(x, x0)
         output = self.out_conv(x)
-        return output
+        return x, output
 
 
 class Decoder_MH(nn.Module):
@@ -362,8 +362,8 @@ class UNet(nn.Module):
 
     def forward(self, x):
         feature = self.encoder(x)
-        output = self.decoder(feature)
-        return output
+        x, output = self.decoder(feature)
+        return x, output
 
 
 class UNet_MH(nn.Module):

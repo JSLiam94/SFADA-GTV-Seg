@@ -3,7 +3,7 @@ import os
 import shutil
 
 import h5py
-# import nibabel as nib
+import nibabel as nib
 import numpy as np
 import SimpleITK as sitk
 import torch
@@ -11,47 +11,46 @@ from medpy import metric
 from scipy.ndimage import zoom
 from scipy.ndimage.interpolation import zoom
 from tqdm import tqdm
-from distance_metrics_fast import hd95_fast, asd_fast, nsd
+from distance_metrics_fast import hd95_fast, asd_fast,nsd
 # from networks.efficientunet import UNet
 from networks.net_factory import net_factory
 
+import numpy as np
+from scipy.ndimage import binary_erosion, binary_dilation
+
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--root_path", type=str,
-                    default="/root/autodl-tmp/BraTS2024", help="Name of Experiment")
-parser.add_argument("--exp", type=str, default="SMU_to_SCH_unet", help="experiment_name")
+                    default="/home/whq/HKUSTGZ/Seg_c/data/APH", help="Name of Experiment")
+parser.add_argument("--exp", type=str, default="SPH_to_APH_unet", help="experiment_name")
 parser.add_argument('--model', type=str,
-                    default='SCH', help='data_name')
+                    default='SPH', help='data_name')
 parser.add_argument('--num_classes', type=int,  default=2,
                     help='output channel of network')
 parser.add_argument('--checkpoint', type=str,  default="best",
                     help='last or best')
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
   
 
 def calculate_metric_percase(pred, gt):
-    # print("------------")
-    # print(pred.shape)
-    # print(gt.shape)
     pred[pred > 0] = 1
     gt[gt > 0] = 1
+    # print("pred.shape=",pred.shape)
     dice = metric.binary.dc(pred, gt)
     hd95 = hd95_fast(pred, gt, (3, 0.5, 0.5))
     asd = asd_fast(pred, gt, (3, 0.5, 0.5))
+    # sur_dic = compute_surface_dice(pred, gt, (3, 0.5, 0.5), tolerance_mm=1.0)
     nsds =nsd(pred, gt, (3, 0.5, 0.5))
-    return dice, hd95, asd, nsds
+    return dice, hd95, asd,nsds
 
 
 def test_single_volume_fast(case, net, classes, FLAGS, test_save_path, patch_size=[256, 256], batch_size=24):
     h5f = h5py.File(FLAGS.root_path + "/test_set/{}".format(case), 'r')
     image = h5f['image'][:]
     label = h5f["label"][:]
-
     label[label > 0] = 1
-    #SCH
-    # label[(label > 0) & (label <= 1)] = 1
-    # label[label > 1] = 0
-
     spacing = h5f["voxel_spacing"]
 
     prediction = np.zeros_like(label)
@@ -90,40 +89,43 @@ def test_single_volume_fast(case, net, classes, FLAGS, test_save_path, patch_siz
                     out, (1, x / patch_size[0], y / patch_size[1]), order=0)
                 prediction[ind:, ...] = pred
     metric_list = []
-    for i in range(1, classes):
-        metric_list.append(calculate_metric_percase(
-            prediction == i, label == i))
-    #保存nii.gz图像 @whq
-    # img_itk = sitk.GetImageFromArray(image.astype(np.float32))
-    # img_itk.SetSpacing(spacing)
-    # prd_itk = sitk.GetImageFromArray(prediction.astype(np.float32))
-    # prd_itk.SetSpacing(spacing)
-    # lab_itk = sitk.GetImageFromArray(label.astype(np.float32))
-    # lab_itk.SetSpacing(spacing)
-    # sitk.WriteImage(prd_itk, test_save_path +
-    #                 case.replace(".h5", "") + "_pred.nii.gz")
-    # sitk.WriteImage(img_itk, test_save_path +
-    #                 case.replace(".h5", "") + "_img.nii.gz")
-    # sitk.WriteImage(lab_itk, test_save_path +
-    #                 case.replace(".h5", "") + "_gt.nii.gz")
-    return np.array(metric_list)
+    if prediction.max()>0:
+        for i in range(1, classes):
+            metric_list.append(calculate_metric_percase(
+                prediction == i, label == i))
+        # 保存nii.gz图像   @whq
+        img_itk = sitk.GetImageFromArray(image.astype(np.float32))
+        img_itk.SetSpacing(spacing)
+        prd_itk = sitk.GetImageFromArray(prediction.astype(np.float32))
+        prd_itk.SetSpacing(spacing)
+        lab_itk = sitk.GetImageFromArray(label.astype(np.float32))
+        lab_itk.SetSpacing(spacing)
+        sitk.WriteImage(prd_itk, test_save_path +
+                        case.replace(".h5", "") + "_pred.nii.gz")
+        sitk.WriteImage(img_itk, test_save_path +
+                        case.replace(".h5", "") + "_img.nii.gz")
+        sitk.WriteImage(lab_itk, test_save_path +
+                        case.replace(".h5", "") + "_gt.nii.gz")
+        return np.array(metric_list)
+    else:
+        print('skip')
 
 
 def Inference(FLAGS):
     image_list = sorted(os.listdir(FLAGS.root_path + "/test_set"))
 
-    folder_path = "/home/whq/HKUSTGZ/Seg_c/A3/model_SMU/ab/MR_4096_SMU_unet_to_SCH_/"  # 替换为您的文件夹路径
+    folder_path = "/home/whq/HKUSTGZ/Seg_c/A3_try/model/SPH_unet/"  # 替换为您的文件夹路径
 
     files = os.listdir(folder_path)
     pth_files = [file for file in files if file.endswith(".pth")]
     sorted_files = sorted(pth_files)
-    with open(folder_path+'output.txt', 'a') as file:
+    # with open(folder_path+'output.txt', 'a') as file:
 
-        for file1 in sorted_files:
+    for file1 in sorted_files:
+        if file1 == 'unet_best_model.pth':
             print(folder_path+file1)
             snapshot_path = folder_path+file1
-            test_save_path = "/home/whq/HKUSTGZ/Seg_c/model1/model-fineturn_AL_20%/{}_to_{}/{}_predictions/".format(
-                FLAGS.exp, FLAGS.model, FLAGS.checkpoint)
+            test_save_path = "/home/whq/HKUSTGZ/Seg_c/A3_try/model/SPH_unet_to_APH_vec256_MR_147_new1_close_adam/all/"
             # if os.path.exists(test_save_path):
             #     shutil.rmtree(test_save_path)
             # os.makedirs(test_save_path)
@@ -144,13 +146,13 @@ def Inference(FLAGS):
                     case, net, FLAGS.num_classes, FLAGS, test_save_path)
                 segmentation_performance.append(metric)
             segmentation_performance = np.array(segmentation_performance)
-            
-            file.write("model_name = " + snapshot_path + "\n")
-            file.write("dice = mean-sd = " + str(segmentation_performance.mean(axis=0)[0][0]) + "-" + str(segmentation_performance.std(axis=0)[0][0]) + "\n")
-            file.write("hd95 = mean-sd = " + str(segmentation_performance.mean(axis=0)[0][1]) + "-" + str(segmentation_performance.std(axis=0)[0][1]) + "\n")
-            file.write("asd = mean-sd = " + str(segmentation_performance.mean(axis=0)[0][2]) + "-" + str(segmentation_performance.std(axis=0)[0][2]) + "\n")
-            file.write("nsd = mean-sd = " + str(segmentation_performance.mean(axis=0)[0][3]) + "-" + str(segmentation_performance.std(axis=0)[0][3]) + "\n")
-            file.write("\n")
+
+            print("model_name = " + snapshot_path + "\n")
+            print("dice = mean-sd = " + str(segmentation_performance.mean(axis=0)[0][0]) + "-" + str(segmentation_performance.std(axis=0)[0][0]) + "\n")
+            print("hd95 = mean-sd = " + str(segmentation_performance.mean(axis=0)[0][1]) + "-" + str(segmentation_performance.std(axis=0)[0][1]) + "\n")
+            print("asd = mean-sd = " + str(segmentation_performance.mean(axis=0)[0][2]) + "-" + str(segmentation_performance.std(axis=0)[0][2]) + "\n")
+            print("nsd = mean-sd = " + str(segmentation_performance.mean(axis=0)[0][3]) + "-" + str(segmentation_performance.std(axis=0)[0][3]) + "\n")
+            print("\n")
 
     return segmentation_performance.mean(axis=0), segmentation_performance.std(axis=0)
 
