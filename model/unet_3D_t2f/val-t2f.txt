@@ -1,0 +1,5 @@
+Epoch: 0/200
+Train Dice: ET 0.005 TC 0.017 WT 0.477
+Val Dice: ET 0.005 TC 0.024 WT 0.593
+Val HD95: ET 9.800 TC 11.323 WT 3.822
+

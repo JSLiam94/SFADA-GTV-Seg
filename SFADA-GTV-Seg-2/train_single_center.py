@@ -45,7 +45,7 @@ from val_2D import test_single_volume, test_single_volume_fast
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--exp", type=str, default="BMC", help="experiment_name")
-parser.add_argument("--model", type=str, default="nnUNet", help="model_name")
+parser.add_argument("--model", type=str, default="unet_3D", help="model_name")
 parser.add_argument("--max_iterations", type=int,
                     default=12000, help="maximum epoch number to train")
 parser.add_argument("--batch_size", type=int, default=2,

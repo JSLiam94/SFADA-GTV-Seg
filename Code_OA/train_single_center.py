@@ -59,7 +59,7 @@ parser.add_argument("--patch_size", type=list,
 parser.add_argument("--seed", type=int, default=2025, help="random seed")
 parser.add_argument("--num_classes", type=int, default=4,
                     help="output channel of network")
-parser.add_argument("--load", default=False,
+parser.add_argument("--load", default=True,
                     action="store_true", help="restore previous checkpoint")
 parser.add_argument(
     "--conf_thresh",
@@ -145,23 +145,32 @@ def train(args, snapshot_path):
     )
 
     model = create_model()
+
+    
     iter_num = 0
     start_epoch = 0
 
     # instantiate optimizers
     optimizer = optim.SGD(model.parameters(), lr=base_lr,
                           momentum=0.9, weight_decay=0.0001)
-
+    
+    if args.load:
+        checkpoint_path = torch.load('/root/autodl-tmp/JS/SFADA-GTV-Seg/model/nnUNet_t2f/best_model.pth')
+        model.load_state_dict(checkpoint_path['state_dict'])
+        optimizer.load_state_dict(checkpoint_path['optimizer_state_dict'])
+        start_epoch = checkpoint_path['epoch']
+        #loss = checkpoint_path['loss']
     # trainloader = DataLoader(db_train, batch_size=batch_size, shuffle=True,
     #                          num_workers=16, pin_memory=True, worker_init_fn=worker_init_fn)
     # valloader = DataLoader(db_val, batch_size=1, shuffle=False,
     #                        num_workers=1)
-
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
     model.train()
 
     #ce_loss = CrossEntropyLoss()
     #dice_loss = losses.DiceLoss(num_classes)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
     class_weights = torch.tensor([0.05, 2.0, 0.1, 0.5], device=device)
     dice_reduction='macro'
     #数量顺序 0,2,3,1
@@ -178,15 +187,16 @@ def train(args, snapshot_path):
 
     max_epoch = 200
     #best_performance = 0.6
+    
 
     iter_num = int(iter_num)
 
     #iterator = tqdm(range(start_epoch, max_epoch), ncols=120)
     best_dice = 0
     train_flag = True
-    for epoch_num in range(max_epoch):
+    for epoch_num in range(start_epoch,max_epoch):
         if train_flag :
-        
+            loss_train = 0
             train_bar = tqdm(trainloader, desc=f"Epoch {epoch_num + 1}/{max_epoch} Training")
             dice1_total = 0.0
             dice2_total = 0.0
@@ -225,13 +235,14 @@ def train(args, snapshot_path):
                 dice3_avg = dice3_total / batch_count
 
                 optimizer.zero_grad()
+                loss_train += loss.item() 
                 loss.backward()
                 optimizer.step()
                 iter_num = iter_num + 1
 
                 lr_ = base_lr * (1.0 - iter_num / max_iterations) ** 0.9
                 dice_mean_avg = (dice1_avg + dice2_avg + dice3_avg) / 3
-                train_bar.desc = f"Epoch [{epoch_num}/{max_epoch}] dice:[{dice_mean_avg:.4f}] loss:[{loss.item():.4f}] Training"
+                train_bar.desc = f"Epoch [{epoch_num}/{max_epoch}] dice:[{dice_mean_avg:.4f}] loss:[{loss_train/batch_count:.4f}] Training"
                 #train_bar.desc = f"Epoch [{epoch_num}/{max_epoch}] loss:[{loss:.4f}] Training"
                 for param_group in optimizer.param_groups:
                     param_group["lr"] = lr_
@@ -256,7 +267,7 @@ def train(args, snapshot_path):
                     #labs = label_batch[1, ...].unsqueeze(0) * 50
                     #writer.add_image("train/GroundTruth", labs, iter_num)
 
-        if (epoch_num + 1) % 1  == 0:
+        if (epoch_num + 1) % 10  == 0:
                 model.eval()
                 #metric_list = 0.0
                 dice_total = 0.0
@@ -331,7 +342,7 @@ def train(args, snapshot_path):
                     f.write(f"Val HD95: ET {avg_hd95_wt:.3f} TC {avg_hd95_co:.3f} WT {avg_hd95_ec:.3f}\n\n")
         model.train()
 
-        if (epoch_num+1) % 1 == 0:
+        if (epoch_num+1) % 5 == 0:
                 save_mode_path = os.path.join(
                     snapshot_path, "model_epoch_" + str(epoch_num) + ".pth")
                 util.save_checkpoint(

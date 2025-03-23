@@ -1,0 +1,12 @@
+[00:28:02.590] Namespace(base_lr=0.03, batch_size=2, conf_thresh=0.8, deterministic=1, exp='BMC', load=False, max_iterations=12000, model='unet_3D', num_classes=4, patch_size=[128, 128], seed=2023)
+[00:28:02.776] 4 iterations per epoch
+[00:33:56.080] Namespace(base_lr=0.03, batch_size=2, conf_thresh=0.8, deterministic=1, exp='BMC', load=False, max_iterations=12000, model='unet_3D', num_classes=4, patch_size=[128, 128], seed=2023)
+[00:33:56.260] 4 iterations per epoch
+[00:34:08.453] Namespace(base_lr=0.03, batch_size=2, conf_thresh=0.8, deterministic=1, exp='BMC', load=False, max_iterations=12000, model='unet_3D', num_classes=4, patch_size=[128, 128], seed=2023)
+[00:34:08.629] 4 iterations per epoch
+[00:34:40.257] epoch 0 : model_mean_dice: 0.010600
+[00:34:40.310] save model to ./model/unet_3D_t2f\model_epoch_0.pth
+[00:35:09.202] epoch 1 : model_mean_dice: 0.056047
+[00:35:09.256] save model to ./model/unet_3D_t2f\model_epoch_1.pth
+[00:35:36.815] epoch 2 : model_mean_dice: 0.069429
+[00:35:36.861] save model to ./model/unet_3D_t2f\model_epoch_2.pth

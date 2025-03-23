@@ -678,7 +678,7 @@ def get_data_loader(source_root,target_root,train_path,test_path,batch_train,bat
    
     # 创建新的 DataLoader
     
-    train_loader = DataLoader(train_dataset, batch_size=batch_train, num_workers=nw,shuffle=True, drop_last=True)
+    train_loader = DataLoader(train_dataset, batch_size=batch_train, num_workers=nw,shuffle=True, drop_last=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_test, num_workers=nw,shuffle=False, drop_last=False)
     
     print("数据加载完成")
